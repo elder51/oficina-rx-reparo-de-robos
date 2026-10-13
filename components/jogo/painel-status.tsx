@@ -1,6 +1,7 @@
-import { AlertTriangle, CheckCircle2, Clock, Sparkles, Timer, Wrench } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, LogOut, Sparkles, Timer, Wrench } from 'lucide-react'
 import { formatarTempo } from '@/lib/jogo/formatar'
 import type { Jogo } from '@/lib/jogo/jogo'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 function Indicador({
@@ -23,7 +24,13 @@ function Indicador({
   )
 }
 
-export function PainelStatus({ jogo }: { jogo: Jogo }) {
+export function PainelStatus({
+  jogo,
+  onAbandonar,
+}: {
+  jogo: Jogo
+  onAbandonar: () => void
+}) {
   const ocupacao = jogo.oficina.quantidade
   const capacidade = jogo.oficina.capacidade
   const proxima = jogo.msAteProximaRodada
@@ -35,10 +42,17 @@ export function PainelStatus({ jogo }: { jogo: Jogo }) {
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-primary">Oficina RX</p>
           <h1 className="text-xl font-bold md:text-2xl">Turno de {jogo.jogador}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Dificuldade:{' '}
+            <span className="font-medium text-foreground">{jogo.config.nome}</span>
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Dificuldade <span className="font-medium text-foreground">{jogo.config.nome}</span>
-        </p>
+        {jogo.status === 'jogando' && (
+          <Button variant="outline" onClick={onAbandonar}>
+            <LogOut className="text-destructive" aria-hidden="true" />
+            Abandonar partida
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
