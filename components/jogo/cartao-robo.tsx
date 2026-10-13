@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import { Layers } from 'lucide-react'
 import type { Robo } from '@/lib/jogo/robo'
 import { cn } from '@/lib/utils'
 import { BadgePrioridade } from './badge-prioridade'
+import { ImagemRobo } from './imagem-robo'
 
 export function CartaoRobo({
   robo,
@@ -26,7 +26,7 @@ export function CartaoRobo({
       )}
     >
       <div className="relative">
-        <Image
+        <ImagemRobo
           src={robo.modelo.imagem}
           alt=""
           width={176}

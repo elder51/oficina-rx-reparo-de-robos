@@ -100,9 +100,20 @@
 }
 
 .esteira-faixa {
+  container-type: inline-size;
   background-image: repeating-linear-gradient(90deg, transparent 0 14px, oklch(1 0 0 / 6%) 14px 16px);
   background-size: 32px 100%;
   animation: esteira-mover 1.2s linear infinite;
+}
+
+@keyframes esteira-robo-entrar {
+  0% { transform: translate3d(calc(-100cqw - 100%), -50%, 0); }
+  93%, 100% { transform: translate3d(0, -50%, 0); }
+}
+
+.esteira-robo-em-transito {
+  animation: esteira-robo-entrar linear forwards;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {

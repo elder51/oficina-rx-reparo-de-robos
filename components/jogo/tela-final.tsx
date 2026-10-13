@@ -21,6 +21,7 @@ export function TelaFinal({
     { rotulo: 'Robôs consertados', valor: String(jogo.robosConsertados) },
     { rotulo: 'Componentes substituídos', valor: String(jogo.componentesSubstituidos) },
     { rotulo: 'Tempo total', valor: formatarTempo(jogo.tempoTotalMs) },
+    { rotulo: 'Bônus de rapidez', valor: formatarTempo(jogo.bonusRapidezMs) },
     { rotulo: 'Erros de código', valor: String(jogo.erros) },
   ]
 
@@ -55,7 +56,7 @@ export function TelaFinal({
           )}
         </div>
 
-        <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-2 md:grid-cols-5">
           {estatisticas.map(({ rotulo, valor }) => (
             <div key={rotulo} className="rounded-lg border bg-background/50 p-3 text-center">
               <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</dt>

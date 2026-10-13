@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Clock, Timer, Wrench } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Sparkles, Timer, Wrench } from 'lucide-react'
 import { formatarTempo } from '@/lib/jogo/formatar'
 import type { Jogo } from '@/lib/jogo/jogo'
 import { cn } from '@/lib/utils'
@@ -41,7 +41,7 @@ export function PainelStatus({ jogo }: { jogo: Jogo }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
         <Indicador icone={Clock} rotulo="Tempo" valor={formatarTempo(jogo.tempoTotalMs)} />
         <Indicador
           icone={Timer}
@@ -50,6 +50,11 @@ export function PainelStatus({ jogo }: { jogo: Jogo }) {
         />
         <Indicador icone={CheckCircle2} rotulo="Consertados" valor={String(jogo.robosConsertados)} />
         <Indicador icone={Wrench} rotulo="Peças trocadas" valor={String(jogo.componentesSubstituidos)} />
+        <Indicador
+          icone={Sparkles}
+          rotulo="Bônus"
+          valor={formatarTempo(jogo.bonusRapidezMs)}
+        />
 
         <div
           className={cn(

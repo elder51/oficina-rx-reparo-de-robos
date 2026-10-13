@@ -152,16 +152,21 @@ export function TabelaRanking({
   ranking,
   destaqueId,
   limite = 5,
+  integrado = false,
 }: {
   ranking: Ranking
   destaqueId?: number
   limite?: number
+  integrado?: boolean
 }) {
   const [aberto, setAberto] = useState(false)
   const restantes = Math.max(0, ranking.tamanho - limite)
 
   return (
-    <section aria-labelledby="titulo-ranking" className="rounded-xl border bg-card p-4">
+    <section
+      aria-labelledby="titulo-ranking"
+      className={cn(!integrado && 'rounded-xl border bg-card p-4')}
+    >
       <div className="mb-3 flex items-center gap-2">
         <Trophy className="size-4 shrink-0 text-accent" aria-hidden="true" />
         <h2 id="titulo-ranking" className="shrink-0 text-sm font-semibold">

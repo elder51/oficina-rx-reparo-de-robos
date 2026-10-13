@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useState } from 'react'
 import { Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,6 +7,7 @@ import type { Jogo } from '@/lib/jogo/jogo'
 import type { Robo } from '@/lib/jogo/robo'
 import { cn } from '@/lib/utils'
 import { BadgePrioridade } from './badge-prioridade'
+import { ImagemRobo } from './imagem-robo'
 
 type Feedback = { tipo: 'sucesso' | 'erro'; texto: string } | null
 
@@ -129,7 +129,7 @@ export function BancadaReparo({ jogo }: { jogo: Jogo }) {
       ) : (
         <>
           <div className="flex items-center gap-3">
-            <Image
+            <ImagemRobo
               src={robo.modelo.imagem}
               alt={`Robô modelo ${robo.modelo.nome}`}
               width={72}

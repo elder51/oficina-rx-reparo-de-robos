@@ -21,6 +21,8 @@ export interface ConfiguracaoJogo {
   totalRodadas: number
   intervaloRodadaMs: number
   intervaloEsteiraMs: number
+  minRobosPorRodada: number
+  maxRobosPorRodada: number
   maxComponentes: number
   tamanhoCodigo: number
   penalidadeErroMs: number
@@ -31,8 +33,10 @@ export const DIFICULDADES: Record<'facil' | 'normal' | 'dificil', ConfiguracaoJo
     nome: 'Fácil',
     capacidade: 6,
     totalRodadas: 6,
-    intervaloRodadaMs: 14000,
+    intervaloRodadaMs: 18000,
     intervaloEsteiraMs: 2500,
+    minRobosPorRodada: 1,
+    maxRobosPorRodada: 2,
     maxComponentes: 3,
     tamanhoCodigo: 3,
     penalidadeErroMs: 2000,
@@ -41,8 +45,10 @@ export const DIFICULDADES: Record<'facil' | 'normal' | 'dificil', ConfiguracaoJo
     nome: 'Normal',
     capacidade: 5,
     totalRodadas: 8,
-    intervaloRodadaMs: 11000,
+    intervaloRodadaMs: 18000,
     intervaloEsteiraMs: 2000,
+    minRobosPorRodada: 1,
+    maxRobosPorRodada: 3,
     maxComponentes: 4,
     tamanhoCodigo: 4,
     penalidadeErroMs: 3000,
@@ -51,8 +57,10 @@ export const DIFICULDADES: Record<'facil' | 'normal' | 'dificil', ConfiguracaoJo
     nome: 'Difícil',
     capacidade: 4,
     totalRodadas: 10,
-    intervaloRodadaMs: 9000,
+    intervaloRodadaMs: 18000,
     intervaloEsteiraMs: 1500,
+    minRobosPorRodada: 2,
+    maxRobosPorRodada: 4,
     maxComponentes: 6,
     tamanhoCodigo: 5,
     penalidadeErroMs: 5000,
@@ -60,6 +68,7 @@ export const DIFICULDADES: Record<'facil' | 'normal' | 'dificil', ConfiguracaoJo
 }
 
 const MAX_EVENTOS = 25
+export const TEMPO_TRANSITO_MS = 4000
 
 /**
  * Controla uma partida. Combina as três estruturas:
@@ -75,10 +84,12 @@ export class Jogo {
 
   private statusAtual: StatusJogo = 'jogando'
   private rodadaAtual = 0
+  private transito: { robo: Robo; iniciouEmMs: number } | null = null
   private idSelecionado: number | null = null
   private consertados = 0
   private substituidos = 0
   private errosCometidos = 0
+  private bonusRapidezAcumuladoMs = 0
   private proximoIdEvento = 1
 
   private readonly inicioMs: number
@@ -143,8 +154,15 @@ export class Jogo {
   get erros(): number {
     return this.errosCometidos
   }
+  get bonusRapidezMs(): number {
+    return this.bonusRapidezAcumuladoMs
+  }
   get resultadoNoRanking(): EntradaRanking | null {
     return this.entradaRanking
+  }
+
+  get roboEmTransito(): Robo | null {
+    return this.transito?.robo ?? null
   }
 
   get roboSelecionado(): Robo | null {
@@ -153,7 +171,13 @@ export class Jogo {
 
   get tempoTotalMs(): number {
     const fim = this.fimMs ?? this.agoraMs
-    return fim - this.inicioMs + this.errosCometidos * this.config.penalidadeErroMs
+    return Math.max(
+      0,
+      fim -
+        this.inicioMs +
+        this.errosCometidos * this.config.penalidadeErroMs -
+        this.bonusRapidezAcumuladoMs,
+    )
   }
 
   get msAteProximaRodada(): number | null {
@@ -171,17 +195,23 @@ export class Jogo {
     if (this.statusAtual !== 'jogando') return
     this.agoraMs = agoraMs
 
-    const rodadasRestantes = this.rodadaAtual < this.config.totalRodadas
-    const oficinaOciosa = this.oficina.estaVazia() && this.esteira.estaVazia()
     if (
-      rodadasRestantes &&
-      (oficinaOciosa || agoraMs - this.ultimaRodadaMs >= this.config.intervaloRodadaMs)
+      this.rodadaAtual < this.config.totalRodadas &&
+      agoraMs - this.ultimaRodadaMs >= this.config.intervaloRodadaMs
     ) {
       this.iniciarRodada()
     }
 
-    if (!this.esteira.estaVazia() && agoraMs - this.ultimaEsteiraMs >= this.config.intervaloEsteiraMs) {
-      this.moverDaEsteiraParaOficina()
+    if (this.transito && agoraMs - this.transito.iniciouEmMs >= TEMPO_TRANSITO_MS) {
+      this.admitirRoboEmTransito()
+    }
+
+    if (
+      this.transito === null &&
+      !this.esteira.estaVazia() &&
+      agoraMs - this.ultimaEsteiraMs >= this.config.intervaloEsteiraMs
+    ) {
+      this.iniciarTransito()
     }
 
     this.verificarFimDeJogo()
@@ -191,10 +221,15 @@ export class Jogo {
   private iniciarRodada(): void {
     this.rodadaAtual++
     this.ultimaRodadaMs = this.agoraMs
-    const extras = Math.min(2, Math.floor(this.rodadaAtual / 3))
-    const quantidade = 1 + Math.floor(Math.random() * (extras + 1)) + (this.rodadaAtual === 1 ? 1 : 0)
+    const quantidade =
+      this.config.minRobosPorRodada +
+      Math.floor(
+        Math.random() * (this.config.maxRobosPorRodada - this.config.minRobosPorRodada + 1),
+      )
+    const quantidadeFinal =
+      this.rodadaAtual <= 2 && Math.random() < 0.7 ? Math.max(1, quantidade - 1) : quantidade
 
-    for (let i = 0; i < quantidade; i++) {
+    for (let i = 0; i < quantidadeFinal; i++) {
       const robo = this.gerador.gerar(this.rodadaAtual)
       this.esteira.enfileirar(robo)
       this.registrarEvento(
@@ -204,10 +239,17 @@ export class Jogo {
     }
   }
 
-  private moverDaEsteiraParaOficina(): void {
+  private iniciarTransito(): void {
     const robo = this.esteira.desenfileirar()
     if (!robo) return
     this.ultimaEsteiraMs = this.agoraMs
+    this.transito = { robo, iniciouEmMs: this.agoraMs }
+  }
+
+  private admitirRoboEmTransito(): void {
+    const robo = this.transito?.robo
+    if (!robo) return
+    this.transito = null
     this.oficina.admitir(robo)
     this.registrarEvento(
       robo.prioridade === Prioridade.EMERGENCIA ? 'alerta' : 'entrada',
@@ -223,7 +265,12 @@ export class Jogo {
       return
     }
     const todasRodadasGeradas = this.rodadaAtual >= this.config.totalRodadas
-    if (todasRodadasGeradas && this.esteira.estaVazia() && this.oficina.estaVazia()) {
+    if (
+      todasRodadasGeradas &&
+      this.esteira.estaVazia() &&
+      this.transito === null &&
+      this.oficina.estaVazia()
+    ) {
       this.registrarEvento('consertado', 'Todos os robôs foram consertados!')
       this.encerrar('vitoria')
     }
@@ -270,12 +317,36 @@ export class Jogo {
         this.oficina.liberar(robo.id)
         this.registrarEvento('consertado', `${robo.rotulo} 100% consertado e liberado!`)
         this.idSelecionado = this.oficina.proximoDaLista?.id ?? null
+        this.concederBonusSeOficinaVazia()
       }
     }
 
     this.verificarFimDeJogo()
     this.notificar()
     return resultado
+  }
+
+  private concederBonusSeOficinaVazia(): void {
+    if (
+      this.rodadaAtual >= this.config.totalRodadas ||
+      !this.oficina.estaVazia() ||
+      !this.esteira.estaVazia() ||
+      this.transito !== null
+    ) {
+      return
+    }
+
+    const bonus = Math.max(
+      0,
+      this.config.intervaloRodadaMs - (this.agoraMs - this.ultimaRodadaMs),
+    )
+    if (bonus === 0) return
+
+    this.bonusRapidezAcumuladoMs += bonus
+    this.registrarEvento(
+      'sucesso',
+      `Oficina liberada antes da próxima rodada: bônus de ${Math.ceil(bonus / 1000)} s descontado do tempo final.`,
+    )
   }
 
   private registrarEvento(tipo: TipoEvento, mensagem: string): void {
